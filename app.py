@@ -90,7 +90,7 @@ if scan_button:
             # EQUITY_L.csv கோப்பில் இருக்கும் அசல் SYMBOL காலமை எடுத்தல்
             nse_df = pd.read_csv("EQUITY_L.csv")
             # முதல் 150 கம்பெனிகளை மட்டும் சோதனைக்கு எடுத்துக்கொள்வோம் (வேகத்திற்காக)
-            raw_tickers = nse_df['SYMBOL'].dropna().unique()[:150]
+            raw_tickers = nse_df['SYMBOL'].dropna().unique()[:15000]
             ticker_list = [f"{str(t).strip()}.NS" for t in raw_tickers]
             st.success("✅ `EQUITY_L.csv` கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
