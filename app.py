@@ -6,7 +6,7 @@ import yfinance as yf
 
 # --- பக்க வடிவமைப்பு அமைப்புகள் ---
 st.set_page_config(
-    page_title="TrendPulse Alpha",
+    page_title="TrendPulse Alpha Pro",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -22,32 +22,43 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- அப்ளிகேஷன் ஹெட்டர் ---
-st.title("📈 TrendPulse Alpha")
-st.caption("Advanced Mathematical Backtesting & Target Prediction Engine for 5-Day Swing Trading")
+st.title("🚀 TrendPulse Alpha Pro")
+st.caption("Universal 5-Day Swing Target Engine for NSE & BSE Stocks")
 
-# --- சைட் பார் கண்ட்ரோல் பேனல் ---
-st.sidebar.header("🛠️ Test Control Panel")
+# --- சைட் பார் கண்ட்ரோல் பேனல் (தேடல் வசதி) ---
+st.sidebar.header("🔍 Universal Stock Finder")
+st.sidebar.markdown("இந்தியாவின் 5,000+ நிறுவனங்களில் எதை வேண்டுமானாலும் நீங்கள் தேடலாம்.")
 
-# இந்திய பங்குகளின் குறியீடுகள்
-ticker_dict = {
-    "TATA STEEL": "TATASTEEL.NS",
-    "RELIANCE": "RELIANCE.NS",
-    "STATE BANK OF INDIA": "SBIN.NS",
-    "INFOSYS": "INFY.NS"
-}
+# பயனர் நேரடியாக டைப் செய்யும் தேடல் பெட்டி (Default ஆக TATASTEEL)
+user_input = st.sidebar.text_input("பங்கின் குறியீட்டை உள்ளிடவும் (e.g., SBIN, RELIANCE, ITC):", "TATASTEEL").upper().strip()
 
-selected_display = st.sidebar.selectbox("Select Equity Ticker", list(ticker_dict.keys()))
-selected_ticker = ticker_dict[selected_display]
+# சந்தை தேர்வு (NSE அல்லது BSE)
+market_type = st.sidebar.radio("பங்குச்சந்தையைத் தேர்ந்தெடுக்கவும்:", ["NSE (தேசிய சந்தை)", "BSE (மும்பை சந்தை)"])
+
+# சர்வவல்லமையுள்ள குறியீட்டு மாற்றி லாஜிக்
+if market_type == "NSE (தேசிய சந்தை)":
+    selected_ticker = f"{user_input}.NS"
+else:
+    selected_ticker = f"{user_input}.BO"
+
 test_days = st.sidebar.slider("Historical Data Scope (Days)", 60, 180, 120)
+
+st.sidebar.write("---")
+st.sidebar.markdown("""
+💡 **உதவிக்குறிப்பு:**
+* NSE பங்குகளுக்கு: `RELIANCE`, `SBIN`, `INFY`
+* BSE பங்குகளுக்கு: `500325` (ரிலையன்ஸ் குறியீடு) அல்லது கம்பெனி பெயர்.
+""")
 
 # --- நிஜமான டேட்டா இன்ஜின் ---
 try:
-    df = yf.download(selected_ticker, period="6mo", interval="1d")
+    with st.spinner("மார்க்கெட் சர்வரில் இருந்து நிஜத் தரவுகள் எடுக்கப்படுகிறது..."):
+        df = yf.download(selected_ticker, period="6mo", interval="1d")
     
     if not df.empty:
         df = df.tail(test_days)
         
-        # சீரான தரவுகளுக்கு சீரிஸ் மாற்று (Flatten)
+        # சீரான தரவுகளுக்கு சீரிஸ் மாற்று
         df_close = df['Close'].squeeze()
         df_high = df['High'].squeeze()
         df_low = df['Low'].squeeze()
@@ -62,7 +73,7 @@ try:
         rs = gain / (loss + 1e-10)
         df['RSI'] = 100 - (100 / (1 + rs))
         
-        # 5-நாள் டார்கெட் கணிப்பு (Pivot Points)
+        # 5-நாள் டார்கெட் கணிப்பு (Pivot Points Formula)
         prev_high = float(df_high.iloc[-2])
         prev_low = float(df_low.iloc[-2])
         prev_close = float(df_close.iloc[-2])
@@ -78,9 +89,10 @@ try:
         current_sma = float(df['SMA_20'].iloc[-1])
 
         # --- மெயின் டேஷ்போர்டு கார்டுகள் ---
+        st.subheader(f"📊 {user_input} - தற்போதைய சந்தை நிலவரம்")
         col1, col2, col3, col4 = st.columns(4)
         price_change = ((current_close - prev_close_val) / prev_close_val) * 100
-        col1.metric("Current Market Price", f"₹{current_close:.2f}", f"{price_change:.2f}%")
+        col1.metric("Current Price", f"₹{current_close:.2f}", f"{price_change:.2f}%")
         col2.metric("🎯 5-Day Target 1 (R1)", f"₹{current_target_1:.2f}")
         col3.metric("🚀 5-Day Target 2 (R2)", f"₹{current_target_2:.2f}")
         col4.metric("🛑 Guard StopLoss (S2)", f"₹{current_stoploss:.2f}")
@@ -88,7 +100,7 @@ try:
         st.write("---")
 
         # --- சார்ட் வரைபடம் ---
-        st.subheader("📊 Algorithmic Target Mapping Chart")
+        st.subheader("📈 Algorithmic Target Mapping Chart")
         fig = go.Figure()
         
         fig.add_trace(go.Candlestick(
@@ -128,6 +140,6 @@ try:
 
         st.info("💡 Note: This tool runs fully using pure mathematical frameworks to gauge entry-target correlations on historic timelines.")
     else:
-        st.error("தரவுகளைப் பெற முடியவில்லை. இணைய இணைப்பைச் சரிபார்க்கவும்.")
+        st.error(f"மன்னிக்கவும்! '{user_input}' என்ற குறியீட்டில் எந்த ஒரு நிறுவனமும் கண்டறியப்படவில்லை. குறியீட்டைச் சரிபார்க்கவும்.")
 except Exception as e:
-    st.error(f"பிழை ஏற்பட்டது: {str(e)}")
+    st.error(f"தரவுகளைப் பெறுவதில் பிழை ஏற்பட்டுள்ளது. குறியீடு சரியாக உள்ளதா என உறுதிப்படுத்தவும்.")
