@@ -42,7 +42,7 @@ test_days = st.sidebar.slider("Historical Data Scope (Days)", 60, 180, 120)
 
 # --- நிஜமான டேட்டா இன்ஜின் ---
 try:
-    df = yf.download(selected_ticker, period="6m", interval="1d")
+    df = yf.download(selected_ticker, period="6mo", interval="1d")
     
     if not df.empty:
         df = df.tail(test_days)
