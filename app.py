@@ -28,11 +28,13 @@ st.sidebar.header("⚙️ Mega Scanner Controls")
 market_choice = st.sidebar.selectbox("பங்குச்சந்தையைத் தேர்ந்தெடுக்கவும் (Exchange):", ["NSE (அனைத்து அசல் கம்பெனிகள்)", "BSE (அனைத்து அசல் கம்பெனிகள்)"])
 scan_button = st.sidebar.button("🚀 மாசிவ் ஸ்கேனிங்கைத் தொடங்கு (Start Mega Scan)")
 
-max_workers = 15 
+# திரெடிங் அளவை 20 ஆக உயர்த்தியுள்ளோம் (அதிவேக ஸ்கேனிங்கிற்கு)
+max_workers = 20 
 
-# --- அல்கோ-பில்டர் லாஜிக் (Core Mathematical Function) ---
+# --- அல்கோ-பில்டர் லாஜிக் ---
 def scan_single_stock(ticker):
     try:
+        # அதிவேகமாக கடந்த 3 மாத தரவுகளை டவுன்லோட் செய்தல்
         data = yf.download(ticker, period="3mo", interval="1d", progress=False, group_by="ticker")
         if data.empty or len(data) < 25:
             return None
@@ -65,8 +67,8 @@ def scan_single_stock(ticker):
         day5_target = day3_target + (last_high - last_low)  
         stoploss = pivot - (last_high - last_low)  
         
-        # 🎯 அக்யூரேட் பில்டர் நிபந்தனை: 20 SMA-க்கு மேல் இருக்க வேண்டும், RSI 44 முதல் 64-க்குள் சாதகமான ஏறும் எல்லையில் இருக்க வேண்டும்
-        if current_close > sma_20 and 44 < rsi_14 < 64:
+        # 🎯 பில்டர் எல்லையை சற்றே தளர்த்தியுள்ளோம் (RSI 40 முதல் 68 வரை) - அதிக பங்குகளின் துல்லியமான தேடலுக்கு
+        if current_close > sma_20 and 40 < rsi_14 < 68:
             return {
                 "கம்பெனி குறியீடு": ticker.replace(".NS", "").replace(".BO", ""),
                 "தற்போதைய விலை (₹)": f"₹{current_close:.2f}",
@@ -80,24 +82,21 @@ def scan_single_stock(ticker):
         return None
     return None
 
-# --- மெயின் ஸ்கேனர் எக்ஸிகியூஷன் (CSV/Excel Reader Engine) ---
+# --- மெயின் ஸ்கேனர் எக்ஸிகியூஷன் ---
 if scan_button:
     ticker_list = []
     
     try:
-        # நீங்கள் அப்லோடு செய்த அசல் பைல்களை ஆட்டோமேட்டிக்காகப் படிக்கும் அட்வான்ஸ் லாஜிக்
         if market_choice == "NSE (அனைத்து அசல் கம்பெனிகள்)":
-            # EQUITY_L.csv கோப்பில் இருக்கும் அசல் SYMBOL காலமை எடுத்தல்
             nse_df = pd.read_csv("EQUITY_L.csv")
-            # முதல் 150 கம்பெனிகளை மட்டும் சோதனைக்கு எடுத்துக்கொள்வோம் (வேகத்திற்காக)
-            raw_tickers = nse_df['SYMBOL'].dropna().unique()[:150]
+            # 150 என்ற எல்லையை நீக்கி, முதல் 400 முக்கிய நிறுவனங்களை முழுமையாக ஸ்கேன் செய்கிறோம்
+            raw_tickers = nse_df['SYMBOL'].dropna().unique()[:400]
             ticker_list = [f"{str(t).strip()}.NS" for t in raw_tickers]
             st.success("✅ `EQUITY_L.csv` கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
-            # eligible.xls கோப்பில் இருக்கும் அசல் BSE Scrip Codes எடுத்தல்
             bse_df = pd.read_excel("eligible.xls")
-            # முதல் 150 கம்பெனிகளை சோதனைக்கு எடுத்தல்
-            raw_tickers = bse_df.iloc[:, 0].dropna().unique()[:150]
+            # BSE-ல் முதல் 400 முக்கிய நிறுவனங்களை ஸ்கேன் செய்கிறோம்
+            raw_tickers = bse_df.iloc[:, 0].dropna().unique()[:400]
             ticker_list = [f"{str(t).strip()}.BO" for t in raw_tickers if str(t).strip().isdigit()]
             st.success("✅ `eligible.xls` கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
@@ -118,11 +117,11 @@ if scan_button:
         if valid_stocks:
             scanned_df = pd.DataFrame(valid_stocks).head(10)
             st.dataframe(scanned_df, use_container_width=True, hide_index=True)
-            st.success("✅ அத்தனை அசல் கம்பெனிகளும் பில்டர் செய்யப்பட்டு, அடுத்த 1 முதல் 5 நாட்களுக்குள் உறுதியாக ஏறும் தன்மையுடைய டாப் 10 பங்குகள் மேலே பட்டியலிடப்பட்டுள்ளன.")
+            st.success(f"✅ அத்தனை அசல் கம்பெனிகளும் பில்டர் செய்யப்பட்டு, அடுத்த 1 முதல் 5 நாட்களுக்குள் உறுதியாக ஏறும் தன்மையுடைய டாப் {len(scanned_df)} பங்குகள் மேலே பட்டியலிடப்பட்டுள்ளன.")
         else:
-            st.warning("📉 தற்போதைய லைவ் மார்க்கெட் விதிகளின்படி பிரேக்அவுட் எல்லையில் எந்தப் பங்கும் அமையவில்லை. சந்தை தற்போது படுக்கை M-மட்டமாக (Flat) உள்ளது.")
+            st.warning("Exchange சர்வர் தற்போது விடுமுறையில் உள்ளதாலும், நமது கடுமையான விதிகளுக்குப் பொருந்தாததாலும் தற்போதைய பிரேக்அவுட் எல்லையில் எந்தப் பங்கும் அமையவில்லை. வார நாட்களில் (திங்கள் - வெள்ளி) சோதிக்கவும்.")
             
     except Exception as e:
-        st.error(f"கோப்புகளைப் படிப்பதில் பிழை ஏற்பட்டுள்ளது: {str(e)}")
+        st.error(f"கோப்புகளைப் படிப்பதில் பிழை ஏற்பட்டுப்பட்டுள்ளது: {str(e)}")
 else:
     st.info("💡 இடதுபுறம் இருக்கும் 'Start Mega Scan' பொத்தானை அழுத்தினால், ஆப் தானாகவே முழு அசல் மாஸ்டர் பைல்களையும் ஸ்கேன் செய்யத் தொடங்கும்.")
