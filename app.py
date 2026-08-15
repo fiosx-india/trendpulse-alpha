@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-import yfinance as yf  # நிஜமான மார்க்கெட் டேட்டாவிற்கு
+import yfinance as yf
 
 # --- பக்க வடிவமைப்பு அமைப்புகள் ---
 st.set_page_config(
@@ -28,7 +28,7 @@ st.caption("Advanced Mathematical Backtesting & Target Prediction Engine for 5-D
 # --- சைட் பார் கண்ட்ரோல் பேனல் ---
 st.sidebar.header("🛠️ Test Control Panel")
 
-# இந்திய பங்குகளின் குறியீடுகள் (NSE பங்குகளுக்கு .NS சேர்க்க வேண்டும்)
+# இந்திய பங்குகளின் குறியீடுகள்
 ticker_dict = {
     "TATA STEEL": "TATASTEEL.NS",
     "RELIANCE": "RELIANCE.NS",
@@ -40,42 +40,37 @@ selected_display = st.sidebar.selectbox("Select Equity Ticker", list(ticker_dict
 selected_ticker = ticker_dict[selected_display]
 test_days = st.sidebar.slider("Historical Data Scope (Days)", 60, 180, 120)
 
-# --- நிஜமான டேட்டா இன்ஜின் (REAL-TIME DATA FETCH) ---
+# --- நிஜமான டேட்டா இன்ஜின் ---
 try:
-    # கடந்த வரலாற்றுத் தரவுகளை நிஜமான மார்க்கெட்டில் இருந்து எடுத்தல்
-    period_str = f"{test_days}d"
     df = yf.download(selected_ticker, period="6m", interval="1d")
     
     if not df.empty:
-        # சமீபத்திய நாட்களை மட்டும் பில்டர் செய்தல்
         df = df.tail(test_days)
         
-        # சீரான தரவுகளுக்கு முப்பரிமாண மாற்று (Flatten Series)
+        # சீரான தரவுகளுக்கு சீரிஸ் மாற்று (Flatten)
         df_close = df['Close'].squeeze()
         df_high = df['High'].squeeze()
         df_low = df['Low'].squeeze()
         df_open = df['Open'].squeeze()
 
-        # --- ஸ்ட்ராட்டஜி இண்டிகேட்டர்கள் கணக்கீடு ---
-        # 1. 20-Day Simple Moving Average (SMA)
+        # 📊 ஸ்ட்ராட்டஜி இண்டிகேட்டர்கள் கணக்கீடு
         df['SMA_20'] = df_close.rolling(window=20).mean()
         
-        # 2. Relative Strength Index (RSI - 14 Days)
         delta = df_close.diff()
         gain = delta.clip(lower=0).rolling(window=14).mean()
         loss = (-delta.clip(upper=0)).rolling(window=14).mean()
         rs = gain / (loss + 1e-10)
         df['RSI'] = 100 - (100 / (1 + rs))
         
-        # 3. பிவோட் பாயிண்ட்ஸ் மூலம் 5-நாள் டார்கெட் கணிப்பு
+        # 5-நாள் டார்கெட் கணிப்பு (Pivot Points)
         prev_high = float(df_high.iloc[-2])
         prev_low = float(df_low.iloc[-2])
         prev_close = float(df_close.iloc[-2])
         
         pivot = (prev_high + prev_low + prev_close) / 3
-        current_target_1 = (2 * pivot) - prev_low       # Target 1 (R1)
-        current_target_2 = pivot + (prev_high - prev_low) # Target 2 (R2)
-        current_stoploss = pivot - (prev_high - prev_low) # StopLoss (S2)
+        current_target_1 = (2 * pivot) - prev_low
+        current_target_2 = pivot + (prev_high - prev_low)
+        current_stoploss = pivot - (prev_high - prev_low)
         
         current_close = float(df_close.iloc[-1])
         prev_close_val = float(df_close.iloc[-2])
@@ -96,15 +91,13 @@ try:
         st.subheader("📊 Algorithmic Target Mapping Chart")
         fig = go.Figure()
         
-        # நிஜமான மெழுகுவர்த்தி வரைபடம் (Candlestick)
         fig.add_trace(go.Candlestick(
             x=df.index, open=df_open, high=df_high, low=df_low, close=df_close,
             name="Price Action"
         ))
-        # 20 SMA டிரெண்ட் லைன்
         fig.add_trace(go.Scatter(x=df.index, y=df['SMA_20'], line=dict(color='#ffaa00', width=1.5), name="20 SMA Trend"))
 
-        # டார்கெட் கோடுகள்
+        # டார்கெட் லைன்கள்
         fig.add_trace(go.Scatter(x=[df.index[-5], df.index[-1]], y=[current_target_1, current_target_1], line=dict(color='#00ffcc', dash='dash'), name="Target 1"))
         fig.add_trace(go.Scatter(x=[df.index[-5], df.index[-1]], y=[current_stoploss, current_stoploss], line=dict(color='#ff4b4b', dash='dash'), name="Stop Loss"))
 
@@ -125,7 +118,7 @@ try:
             else:
                 st.info("🔵 Neutral Momentum Zone.")
 
-with col_b:
+        with col_b:
             st.markdown("### 🛡️ 5-Day Predictive Decision Logic")
             is_above_sma = current_close > current_sma
             if is_above_sma and current_rsi < 65:
