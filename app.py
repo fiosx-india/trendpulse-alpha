@@ -20,32 +20,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("⚡ TrendPulse Alpha Quantum Pro")
-st.caption("Automated CSV/Excel Live Database Scanner for All NSE & BSE Listed Equities")
+st.title("⚡ TrendPulse Alpha Quantum Pro (Ultimate Edition)")
+st.caption("Automated Multi-Indicator Live Database Scanner with Volume Spike & SuperTrend Logic")
 
 # --- சைட் பார் அமைப்புகள் ---
 st.sidebar.header("⚙️ Mega Scanner Controls")
 market_choice = st.sidebar.selectbox("பங்குச்சந்தையைத் தேர்ந்தெடுக்கவும் (Exchange):", ["NSE (அனைத்து அசல் கம்பெனிகள்)", "BSE (அனைத்து அசல் கம்பெனிகள்)"])
 scan_button = st.sidebar.button("🚀 மாசிவ் ஸ்கேனிங்கைத் தொடங்கு (Start Mega Scan)")
 
-max_workers = 30 # பல்லாயிரக்கணக்கான பங்குகளை வேகமாக ஸ்கேன் செய்ய திரெடிங் அளவு உயர்த்தப்பட்டுள்ளது
+max_workers = 30 
 
-# --- அல்கோ-பில்டர் லாஜிக் ---
+# --- அல்கோ-பில்டர் லாஜிக் (3 அசுர பலங்களுடன்) ---
 def scan_single_stock(ticker):
     try:
         # வரலாற்றுத் தரவுகளை அதிவேகமாக எடுத்தல்
         data = yf.download(ticker, period="3mo", interval="1d", progress=False, group_by="ticker")
-        if data.empty or len(data) < 20:
+        if data.empty or len(data) < 22:
             return None
         
         close_prices = data['Close'].squeeze()
         high_prices = data['High'].squeeze()
         low_prices = data['Low'].squeeze()
+        volume_data = data['Volume'].squeeze()
         
         current_close = float(close_prices.iloc[-1])
         prev_close = float(close_prices.iloc[-2])
+        current_volume = float(volume_data.iloc[-1])
         
-        # 📊 இண்டிகேட்டர்கள் கணக்கீடு (20 SMA & 14 RSI)
+        # 📊 பலம் 1: 20 SMA & 14 RSI கணக்கீடு
         sma_20 = close_prices.rolling(window=20).mean().iloc[-1]
         
         delta = close_prices.diff()
@@ -53,6 +55,16 @@ def scan_single_stock(ticker):
         loss = (-delta.clip(upper=0)).rolling(window=14).mean()
         rs = gain / (loss + 1e-10)
         rsi_14 = (100 - (100 / (1 + rs))).iloc[-1]
+        
+        # 📊 பலம் 2: அசுர வால்யூம் பில்டர் (கடந்த 5 நாட்களின் சராசரி வால்யூம் விட இன்று அதிகம் இருக்க வேண்டும்)
+        avg_volume_5d = volume_data.rolling(window=5).mean().iloc[-2]
+        is_volume_spike = current_volume > (avg_volume_5d * 1.2) # 20% வால்யூம் அதிகம் இருக்க வேண்டும்
+        
+        # 📊 பலம் 3: எளிய சூப்பர்-டிரெண்ட் (ATR Based Logic)
+        # கடந்த 7 நாட்களின் ஹை-லோ வித்தியாசத்தை வைத்து எளிய டிரெண்ட் கணிப்பு
+        atr_7d = (high_prices - low_prices).rolling(window=7).mean().iloc[-1]
+        hl_avg = (high_prices.iloc[-1] + low_prices.iloc[-1]) / 2
+        supertrend_bullish = current_close > (hl_avg - (2 * atr_7d))
         
         # பிவோட் முறைப்படி 1 முதல் 5 நாட்களுக்கான அல்கோ-டார்கெட் லெவல்கள்
         last_high = float(high_prices.iloc[-2])
@@ -66,16 +78,22 @@ def scan_single_stock(ticker):
         day5_target = day3_target + (last_high - last_low)  
         stoploss = pivot - (last_high - last_low)  
         
-        # 🎯 உலகளாவிய பில்டர் விதி: விலை 20 SMA-க்கு மேல் இருக்க வேண்டும், RSI 38 முதல் 70-க்குள் சாதகமாக இருக்க வேண்டும்
-        if current_close > sma_20 and 38 < rsi_14 < 70:
+        # 🎯 அல்டிமேட் பில்டர் விதி: விலை 20 SMA-க்கு மேல் இருக்க வேண்டும், RSI 40-66க்குள் இருக்க வேண்டும், 
+        # வால்யூம் பலமாக இருக்க வேண்டும் மற்றும் சூப்பர் டிரெண்ட் சாதகமாக இருக்க வேண்டும்!
+        if current_close > sma_20 and 40 < rsi_14 < 66 and is_volume_spike and supertrend_bullish:
+            
+            # தமிழ் அல்கோ-விளக்கம்
+            insight = "வலுவான வால்யூம் ஏற்றம்" if current_volume > (avg_volume_5d * 1.5) else "டிரெண்ட் பிரேக்அவுட்"
+            
             return {
-                "கம்பெனி குறியீடு": ticker.replace(".NS", "").replace(".BO", ""),
-                "தற்போதைய விலை (₹)": f"₹{current_close:.2f}",
-                "RSI பலம் (14D)": f"{rsi_14:.1f}",
+                "கம்பெனி": ticker.replace(".NS", "").replace(".BO", ""),
+                "விலை (₹)": f"₹{current_close:.2f}",
+                "RSI பலம்": f"{rsi_14:.1f}",
                 "📈 நாள் 1 இலக்கு": f"₹{day1_target:.2f}",
                 "🚀 நாள் 3 இலக்கு": f"₹{day3_target:.2f}",
                 "🔥 நாள் 5 இலக்கு": f"₹{day5_target:.2f}",
-                "🛑 பாதுகாப்பு எல்லை (StopLoss)": f"₹{stoploss:.2f}"
+                "🛑 ஸ்டாப்லாஸ்": f"₹{stoploss:.2f}",
+                "அல்கோ-விளக்கம்": insight
             }
     except:
         return None
@@ -88,18 +106,16 @@ if scan_button:
     try:
         if market_choice == "NSE (அனைத்து அசல் கம்பெனிகள்)":
             nse_df = pd.read_csv("EQUITY_L.csv")
-            # வரம்புகள் இல்லாமல் மொத்த அசல் கம்பெனிகளையும் லிஸ்ட்டில் எடுக்கிறது
             raw_tickers = nse_df['SYMBOL'].dropna().unique()
             ticker_list = [f"{str(t).strip()}.NS" for t in raw_tickers]
             st.success("✅ `EQUITY_L.csv` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
             bse_df = pd.read_excel("eligible.xls")
-            # BSE-ன் மொத்த மாஸ்டர் கம்பெனிகளையும் எடுக்கிறது
             raw_tickers = bse_df.iloc[:, 0].dropna().unique()
             ticker_list = [f"{str(t).strip()}.BO" for t in raw_tickers if str(t).strip().isdigit()]
             st.success("✅ `eligible.xls` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
-        st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. மாசிவ் குவாண்டம் ஸ்கேனிங் செய்யப்படுகிறது... சிறிது விநாடிகள் பொறுத்திருக்கவும்...")
+        st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. வால்யூம் & சூப்பர்-டிரெண்ட் கொண்டு அசுர வேக ஸ்கேனிங் செய்யப்படுகிறது...")
         
         valid_stocks = []
         
@@ -115,11 +131,10 @@ if scan_button:
         
         if valid_stocks:
             scanned_df = pd.DataFrame(valid_stocks)
-            # டாப் 15 பலமான பங்குகளை மட்டும் பிரித்துக் காட்டுதல்
             st.dataframe(scanned_df.head(15), use_container_width=True, hide_index=True)
-            st.success(f"✅ மொத்த மார்க்கெட்டும் பில்டர் செய்யப்பட்டு, ஏறும் தன்மையுடைய டாப் {len(scanned_df.head(15))} முக்கிய பங்குகள் மேலே பட்டியலிடப்பட்டுள்ளன.")
+            st.success(f"✅ வால்யூம் மற்றும் டிரெண்ட் வடிகட்டப்பட்டு, ஏறும் தன்மையுடைய டாப் {len(scanned_df.head(15))} முக்கிய பங்குகள் மேலே பட்டியலிடப்பட்டுள்ளன.")
         else:
-            st.warning("Exchange சர்வர் தற்போது விடுமுறையில் உள்ளதாலும், நமது கடுமையான விதிகளுக்குப் பொருந்தாததாலும் தற்போதைய பிரேக்அவுட் எல்லையில் எந்தப் பங்கும் அமையவில்லை. திங்கள் முதல் வெள்ளி வரை லைவ் மார்க்கெட்டில் சோதிக்கவும்.")
+            st.warning("Exchange சர்வர் தற்போது விடுமுறையில் உள்ளதாலும், நமது கூடுதல் விதிகளுக்குப் பொருந்தாததாலும் தற்போதைய பிரேக்அவுட் எல்லையில் எந்தப் பங்கும் அமையவில்லை. திங்கள் முதல் வெள்ளி வரை லைவ் மார்க்கெட்டில் சோதிக்கவும்.")
             
     except Exception as e:
         st.error(f"கோப்புகளைப் படிப்பதில் பிழை ஏற்பட்டுள்ளது: {str(e)}")
