@@ -61,7 +61,6 @@ def scan_single_stock(ticker):
         is_volume_spike = current_volume > (avg_volume_5d * 1.2) # 20% வால்யூம் அதிகம் இருக்க வேண்டும்
         
         # 📊 பலம் 3: எளிய சூப்பர்-டிரெண்ட் (ATR Based Logic)
-        # கடந்த 7 நாட்களின் ஹை-லோ வித்தியாசத்தை வைத்து எளிய டிரெண்ட் கணிப்பு
         atr_7d = (high_prices - low_prices).rolling(window=7).mean().iloc[-1]
         hl_avg = (high_prices.iloc[-1] + low_prices.iloc[-1]) / 2
         supertrend_bullish = current_close > (hl_avg - (2 * atr_7d))
@@ -78,11 +77,7 @@ def scan_single_stock(ticker):
         day5_target = day3_target + (last_high - last_low)  
         stoploss = pivot - (last_high - last_low)  
         
-        # 🎯 அல்டிமேட் பில்டர் விதி: விலை 20 SMA-க்கு மேல் இருக்க வேண்டும், RSI 40-66க்குள் இருக்க வேண்டும், 
-        # வால்யூம் பலமாக இருக்க வேண்டும் மற்றும் சூப்பர் டிரெண்ட் சாதகமாக இருக்க வேண்டும்!
         if current_close > sma_20 and 40 < rsi_14 < 66 and is_volume_spike and supertrend_bullish:
-            
-            # தமிழ் அல்கோ-விளக்கம்
             insight = "வலுவான வால்யூம் ஏற்றம்" if current_volume > (avg_volume_5d * 1.5) else "டிரெண்ட் பிரேக்அவுட்"
             
             return {
@@ -110,10 +105,17 @@ if scan_button:
             ticker_list = [f"{str(t).strip()}.NS" for t in raw_tickers]
             st.success("✅ `EQUITY_L.csv` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
-            bse_df = pd.read_excel("eligible.xls")
-            raw_tickers = bse_df.iloc[:, 0].dropna().unique()
+            # BSE கோப்பினை துல்லியமாகப் படித்தல் (eligible.xls அல்லது BhavCopy CSV)
+            try:
+                bse_df = pd.read_excel("eligible.xls", skiprows=1)
+                raw_tickers = bse_df.iloc[:, 1].dropna().unique() # 2வது தூண் (Scrip Code)
+            except:
+                # ஒருவேளை UDIFF Bhavcopy CSV ஃபைல் பயன்படுத்தப்பட்டால்
+                bse_df = pd.read_csv("BhavCopy_BSE_CM_0_0_0_20260814_F_0000.CSV")
+                raw_tickers = bse_df['FinInstrmId'].dropna().unique()
+                
             ticker_list = [f"{str(t).strip()}.BO" for t in raw_tickers if str(t).strip().isdigit()]
-            st.success("✅ `eligible.xls` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
+            st.success("✅ BSE மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
         st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. வால்யூம் & சூப்பர்-டிரெண்ட் கொண்டு அசுர வேக ஸ்கேனிங் செய்யப்படுகிறது...")
         
