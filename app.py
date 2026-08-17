@@ -110,7 +110,8 @@ if scan_button:
             st.success("✅ `EQUITY_L.csv` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
             # BSE கோப்பிற்கான துல்லியமான வாசிப்பு (Eligible Excel Structure)
-            bse_df = pd.read_excel("eligible.xls", skiprows=1)
+            bse_df = pd.read_excel("eligible.xls", skiprows=1, engine='openpyxl')
+            
             # ஸ்கிரிப் கோடு எங்குள்ளது எனச் சரிபார்த்தல்
             if 'Scrip Code' in bse_df.columns:
                 raw_tickers = bse_df['Scrip Code'].dropna().unique()
