@@ -117,29 +117,15 @@ if scan_button:
             if 'FinInstrmTp' in bse_df.columns:
                 bse_df = bse_df[bse_df['FinInstrmTp'] == 'STK']
 
-            # 2. பின்னாடி ஸ்கேன் செய்ய எண்களையும், முன்பூச்சு காட்ட கம்பெனி பெயரையும் சேமித்தல்
-            global bse_name_mapping
-            bse_name_mapping = {}
-            
-            raw_tickers = []
-            if 'FinInstrmId' in bse_df.columns and 'FinInstrmNm' in bse_df.columns:
-                for _, row in bse_df.iterrows():
-                    code = str(int(float(row['FinInstrmId']))).strip()
-                    name = str(row['FinInstrmNm']).strip()
-                    if code:
-                        ticker_str = f"{code}.BO"
-                        raw_tickers.append(ticker_str)
-                        bse_name_mapping[ticker_str] = name
+            # 2. ஸ்கிரிப் கோடு எங்குள்ளது எனச் சரிபார்த்தல் (புதிய மற்றும் பழைய பார்மட்டுகளுக்கு)
+            if 'FinInstrmId' in bse_df.columns:
+                raw_tickers = bse_df['FinInstrmId'].dropna().unique()
+            elif 'Scrip Code' in bse_df.columns:
+                raw_tickers = bse_df['Scrip Code'].dropna().unique()
             else:
-                for t in bse_df.iloc[:, 5].dropna().unique():
-                    t_str = str(t).strip()
-                    if t_str and t_str.replace('.', '', 1).isdigit():
-                        code = str(int(float(t_str))).strip()
-                        ticker_str = f"{code}.BO"
-                        raw_tickers.append(ticker_str)
-                        bse_name_mapping[ticker_str] = code
+                raw_tickers = bse_df.iloc[:, 5].dropna().unique()
 
-            ticker_list = raw_tickers
+            ticker_list = [f"{str(int(float(t))).strip()}.BO" for t in raw_tickers if str(t).strip() and str(t).replace('.','',1).isdigit()]
             st.success("`BhavCopy` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
         st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. ஸ்கேனிங் தொடங்குகிறது...")
