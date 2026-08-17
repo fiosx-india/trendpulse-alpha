@@ -109,17 +109,24 @@ if scan_button:
             ticker_list = [f"{str(t).strip()}.NS" for t in raw_tickers]
             st.success("✅ `EQUITY_L.csv` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
-            # BSE கோப்பிற்கான துல்லியமான வாசிப்பு (Eligible Excel Structure)
-            bse_df = pd.read_csv("BhavCopy_BSE_CM_0_0_0_20260817_F_0000.CSV")
+
+            # BSE கோப்பிற்கான வாசிப்பு மற்றும் எர்ரர் தவிர்ப்பு
+            bse_df = pd.read_csv("BhavCopy_BSE_CM_0_0_0_20260817_F_0000.CSV", on_bad_lines='skip')
             
-            # ஸ்கிரிப் கோடு எங்குள்ளது எனச் சரிபார்த்தல்
-            if 'Scrip Code' in bse_df.columns:
+            # 1. மியூச்சுவல் ஃபண்ட், பாண்டுகளை நீக்கிவிட்டு பங்குகளை (Stocks) மட்டும் எடுக்க:
+            if 'FinInstrmTp' in bse_df.columns:
+                bse_df = bse_df[bse_df['FinInstrmTp'] == 'STK']
+
+            # 2. ஸ்கிரிப் கோடு எங்குள்ளது எனச் சரிபார்த்தல் (புதிய மற்றும் பழைய பார்மட்டுகளுக்கு)
+            if 'FinInstrmId' in bse_df.columns:
+                raw_tickers = bse_df['FinInstrmId'].dropna().unique()
+            elif 'Scrip Code' in bse_df.columns:
                 raw_tickers = bse_df['Scrip Code'].dropna().unique()
             else:
-                raw_tickers = bse_df.iloc[:, 1].dropna().unique()
-                
-            ticker_list = [f"{str(int(t)).strip()}.BO" for t in raw_tickers if str(t).strip().replace('.', '', 1).isdigit()]
-            st.success("✅ `eligible.xls` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
+                raw_tickers = bse_df.iloc[:, 5].dropna().unique()
+
+            ticker_list = [f"{str(int(float(t))).strip()}.BO" for t in raw_tickers if str(t).strip() and str(t).replace('.','',1).isdigit()]
+            st.success("`BhavCopy` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
         st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. ஸ்கேனிங் தொடங்குகிறது...")
         
