@@ -28,17 +28,16 @@ st.sidebar.header("⚙️ Mega Scanner Controls")
 market_choice = st.sidebar.selectbox("பங்குச்சந்தையைத் தேர்ந்தெடுக்கவும் (Exchange):", ["NSE (அனைத்து அசல் கம்பெனிகள்)", "BSE (அனைத்து அசல் கம்பெனிகள்)"])
 scan_button = st.sidebar.button("🚀 மாசிவ் ஸ்கேனிங்கைத் தொடங்கு (Start Mega Scan)")
 
-max_workers = 10  # சர்வர் பிளாக் (Rate Limit) ஆகாமல் இருக்க த்ரெட் எண்ணிக்கை குறைக்கபட்டுள்ளது
+max_workers = 10  # சர்வர் பிளாக் (Rate Limit) ஆகாமல் இருக்க த்ரெட் கட்டுப்பாடு
 
 # --- அல்கோ-பில்டர் லாஜிக் ---
 def scan_single_stock(ticker):
     try:
-        # வரலாற்றுத் தரவுகளை பாதுகாப்பாக எடுத்தல் (group_by நீக்கப்பட்டுள்ளது)
         data = yf.download(ticker, period="3mo", interval="1d", progress=False)
         if data is None or data.empty or len(data) < 22:
             return None
         
-        # Multi-Index அல்லது Single Index சிக்கலைத் தவிர்க்க சரிபார்த்தல்
+        # Multi-Index அல்லது Single Index சரிசெய்தல்
         if isinstance(data.columns, pd.MultiIndex):
             close_prices = data['Close'].iloc[:, 0]
             high_prices = data['High'].iloc[:, 0]
@@ -53,26 +52,25 @@ def scan_single_stock(ticker):
         current_close = float(close_prices.iloc[-1])
         current_volume = float(volume_data.iloc[-1])
         
-        # 📊 பலம் 1: 20 SMA & 14 RSI கணக்கீடு
+        # 📊 20 SMA & 14 RSI கணக்கீடு
         sma_20 = float(close_prices.rolling(window=20).mean().iloc[-1])
         
         delta = close_prices.diff()
         gain = delta.clip(lower=0).rolling(window=14).mean()
         loss = (-delta.clip(upper=0)).rolling(window=14).mean()
         rs = gain / (loss + 1e-10)
-        rsi_series = 100 - (100 / (1 + rs))
-        rsi_14 = float(rsi_series.iloc[-1])
+        rsi_14 = float((100 - (100 / (1 + rs))).iloc[-1])
         
-        # 📊 பலம் 2: அசுர வால்யூம் பில்டர்
+        # 📊 வால்யூம் பில்டர்
         avg_volume_5d = float(volume_data.rolling(window=5).mean().iloc[-2])
         is_volume_spike = current_volume > (avg_volume_5d * 1.2)
         
-        # 📊 பலம் 3: எளிய சூப்பர்-டிரெண்ட்
+        # 📊 சூப்பர்-டிரெண்ட் & ATR
         atr_7d = float((high_prices - low_prices).rolling(window=7).mean().iloc[-1])
         hl_avg = float((high_prices.iloc[-1] + low_prices.iloc[-1]) / 2)
         supertrend_bullish = current_close > (hl_avg - (2 * atr_7d))
         
-        # பிவோட் கணக்கீடு
+        # பிவோட் டார்கெட்டுகள்
         last_high = float(high_prices.iloc[-2])
         last_low = float(low_prices.iloc[-2])
         last_close = float(close_prices.iloc[-2])
@@ -83,7 +81,6 @@ def scan_single_stock(ticker):
         day5_target = day3_target + (last_high - last_low)  
         stoploss = pivot - (last_high - last_low)  
         
-        # நிபந்தனைகள் சரிபார்ப்பு
         if current_close > sma_20 and 40 < rsi_14 < 66 and is_volume_spike and supertrend_bullish:
             insight = "வலுவான வால்யூம் ஏற்றம்" if current_volume > (avg_volume_5d * 1.5) else "டிரெண்ட் பிரேக்அவுட்"
             
@@ -112,28 +109,32 @@ if scan_button:
             ticker_list = [f"{str(t).strip()}.NS" for t in raw_tickers]
             st.success("✅ `EQUITY_L.csv` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
-            bse_df = pd.read_excel("eligible.xls")
-            raw_tickers = bse_df.iloc[:, 0].dropna().unique()
-            ticker_list = [f"{str(t).strip()}.BO" for t in raw_tickers]
+            # BSE கோப்பிற்கான துல்லியமான வாசிப்பு (Eligible Excel Structure)
+            bse_df = pd.read_excel("eligible.xls", skiprows=1)
+            # ஸ்கிரிப் கோடு எங்குள்ளது எனச் சரிபார்த்தல்
+            if 'Scrip Code' in bse_df.columns:
+                raw_tickers = bse_df['Scrip Code'].dropna().unique()
+            else:
+                raw_tickers = bse_df.iloc[:, 1].dropna().unique()
+                
+            ticker_list = [f"{str(int(t)).strip()}.BO" for t in raw_tickers if str(t).strip().replace('.', '', 1).isdigit()]
             st.success("✅ `eligible.xls` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
         st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. ஸ்கேனிங் தொடங்குகிறது...")
         
         valid_stocks = []
         
-        # ⚡ பேரலல் பிராசஸிங் எஞ்சின்
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(scan_single_stock, ticker_list)
             for res in results:
                 if res is not None:
                     valid_stocks.append(res)
                     
-        # 📈 முடிவுகள்
         st.subheader(f"🏆 பக்கா அல்கோ-பில்டர் முடிவுகள் (Top Breakout Stocks)")
         
         if valid_stocks:
             scanned_df = pd.DataFrame(valid_stocks)
-            st.dataframe(scanned_df.head(15), use_container_width=True, hide_index=True)
+            st.dataframe(scanned_df.head(15), width='stretch', hide_index=True)
             st.success(f"✅ டாப் {len(scanned_df.head(15))} முக்கிய பங்குகள் மேலே பட்டியலிடப்பட்டுள்ளன.")
         else:
             st.warning("தற்போதைய நிபந்தனைகளுக்குப் பொருந்தும் பங்குகள் எதுவும் கிடைக்கவில்லை. நேரடிச் சந்தை நேரத்தில் மீண்டும் முயற்சிக்கவும்.")
