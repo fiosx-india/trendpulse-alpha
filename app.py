@@ -110,22 +110,28 @@ if scan_button:
             st.success("✅ `EQUITY_L.csv` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
         else:
 
-            # BSE கோப்பிற்கான வாசிப்பு மற்றும் எர்ரர் தவிர்ப்பு
+             # BSE கோப்பிற்கான வாசிப்பு மற்றும் எர்ரர் தவிர்ப்பு
             bse_df = pd.read_csv("BhavCopy_BSE_CM_0_0_0_20260817_F_0000.CSV", on_bad_lines='skip')
             
             # 1. மியூச்சுவல் ஃபண்ட், பாண்டுகளை நீக்கிவிட்டு பங்குகளை (Stocks) மட்டும் எடுக்க:
             if 'FinInstrmTp' in bse_df.columns:
                 bse_df = bse_df[bse_df['FinInstrmTp'] == 'STK']
 
-            # 2. ஸ்கிரிப் கோடு எங்குள்ளது எனச் சரிபார்த்தல் (புதிய மற்றும் பழைய பார்மட்டுகளுக்கு)
-            if 'FinInstrmId' in bse_df.columns:
-                raw_tickers = bse_df['FinInstrmId'].dropna().unique()
-            elif 'Scrip Code' in bse_df.columns:
-                raw_tickers = bse_df['Scrip Code'].dropna().unique()
+            # 2. ஸ்கிரிப் கோடு மற்றும் கம்பெனி பெயரைக் கையாள்தல்
+            if 'FinInstrmId' in bse_df.columns and 'FinInstrmNm' in bse_df.columns:
+                # எண்களுக்குப் பதிலாக கம்பெனி பெயரையும் அதன் கோடையும் இணைத்து எடுப்பது
+                raw_tickers = []
+                for _, row in bse_df.iterrows():
+                    code = str(int(float(row['FinInstrmId']))).strip()
+                    name = str(row['FinInstrmNm']).strip()
+                    if code:
+                        raw_tickers.append(f"{code}.BO")
+                ticker_list = raw_tickers
             else:
+                # பழைய பார்மட்டிற்கான மாற்று வழி
                 raw_tickers = bse_df.iloc[:, 5].dropna().unique()
+                ticker_list = [f"{str(int(float(t))).strip()}.BO" for t in raw_tickers if str(t).strip() and str(t).replace('.','',1).isdigit()]
 
-            ticker_list = [f"{str(int(float(t))).strip()}.BO" for t in raw_tickers if str(t).strip() and str(t).replace('.','',1).isdigit()]
             st.success("`BhavCopy` மாஸ்டர் கோப்பு வெற்றிகரமாகப் படிக்கப்பட்டது.")
             
         st.info(f"🔄 மொத்தம் {len(ticker_list)} நிறுவனங்கள் கண்டறியப்பட்டுள்ளன. ஸ்கேனிங் தொடங்குகிறது...")
