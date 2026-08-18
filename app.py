@@ -156,10 +156,14 @@ else:
 
 
 
+
+
+
+import urllib.parse
 import streamlit as st
 
 st.markdown("---")
-st.header("🧾 முழுமையான டேக்ஸ் இன்வாய்ஸ் (Tax Invoice Generator)")
+st.header("🧾 முழுமையான டேக்ஸ் இன்வாய்ஸ் (Tax Invoice & WhatsApp/PDF Share)")
 
 with st.expander("👉 இன்வாய்ஸ் விவரங்களை உள்ளிட இங்கே கிளிக் செய்யவும்"):
 
@@ -188,32 +192,31 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
     irn_no = st.text_input("I.R.N", "")
     eway_no = st.text_input("EWAY BILL NO", "")
     invoice_type = st.text_input(
-        "இன்வாய்ஸ் வகை (ဥပမာ: ORIGINAL FOR CONSIGNEE)",
-        "ORIGINAL FOR CONSIGNEE",
+        "இன்வாய்ஸ் வகை", "ORIGINAL FOR CONSIGNEE"
     )
 
   st.markdown("---")
 
-  # 3. Billed To மற்றும் Shipped To விவரங்கள் (இரண்டு பக்கவாட்டுப் பிரிவுகள்)
+  # 3. Billed To மற்றும் Shipped To விவரங்கள்
   st.subheader("👥 பெறுபவர் மற்றும் அனுப்புமிடம் (Billed To & Shipped To)")
   col_b1, col_b2 = st.columns(2)
 
   with col_b1:
     st.markdown("**Billed To:**")
-    billed_name = st.text_input("பெறுபவர் கம்பெனி பெயர் (Billed Name)", "")
-    billed_addr = st.text_area("பெறுபவர் முகவரி (Billed Address)", "")
+    billed_name = st.text_input("பெறுபவர் கம்பெனி பெயர்", "")
+    billed_addr = st.text_area("பெறுபவர் முகவரி", "")
     billed_gstin = st.text_input("பெறுபவர் GSTIN", "")
     billed_pan = st.text_input("பெறுபவர் PAN", "")
 
   with col_b2:
     st.markdown("**Shipped To:**")
-    shipped_name = st.text_input("அனுப்பும் இடம் கம்பெனி பெயர் (Shipped Name)", "")
-    shipped_addr = st.text_area("அனுப்பும் இடம் முகவரி (Shipped Address)", "")
+    shipped_name = st.text_input("அனுப்பும் இடம் கம்பெனி பெயர்", "")
+    shipped_addr = st.text_area("அனுப்பும் இடம் முகவரி", "")
     shipped_gstin = st.text_input("அனுப்பும் இடம் GSTIN", "")
 
   st.markdown("---")
 
-  # 4. பொருட்கள் விவரங்கள் (Goods Details)
+  # 4. பொருட்கள் விவரங்கள்
   st.subheader("📦 பொருள் விவரங்கள் (Goods Details)")
   desc = st.text_input("பொருள் விளக்கம் (Description of Goods)", "")
   col_g1, col_g2, col_g3, col_g4, col_g5 = st.columns(5)
@@ -228,7 +231,7 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
   with col_g5:
     rate = st.number_input("Rate", value=0.0)
 
-  # வரி வகைகள் (CGST, SGST, IGST)
+  # வரி வகைகள்
   st.subheader("💰 வரித் தொகைகள் (Tax Breakdown)")
   col_t1, col_t2, col_t3 = st.columns(3)
   with col_t1:
@@ -240,20 +243,22 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
 
   st.markdown("---")
 
-  # 5. விதிமுறைகள், வங்கி மற்றும் வாகன விவரங்கள்
-  st.subheader("🏦 வங்கி, வாகன எண் & விதிமுறைகள் (Bank & Transport)")
+  # 5. வங்கி மற்றும் வாகன விவரங்கள்
+  st.subheader("🏦 வங்கி, வாகன எண் & வாடிக்கையாளர் வாட்ஸ்அப்")
   col_v1, col_v2 = st.columns(2)
   with col_v1:
     vehicle_no = st.text_input("வாகன எண் (VEHICLE NO)", "")
     bank_name = st.text_input("வங்கி பெயர் (BANK NAME)", "")
     account_no = st.text_input("கணக்கு எண் (ACCOUNT NO)", "")
+    customer_phone = st.text_input(
+        "வாடிக்கையாளர் வாட்ஸ்அப் எண் (எ.கா: 919876543210)", ""
+    )
   with col_v2:
     branch = st.text_input("கிளை (BRANCH)", "")
     ifsc = st.text_input("IFSC", "")
     terms_cond = st.text_area(
         "விதிமுறைகள் (Terms & Conditions)",
-        "Overdue interest will be charged at 24% from the invoice date.\nWe"
-        " are not responsible for any loss or damage in transit.",
+        "Overdue interest will be charged at 24% from the invoice date.",
     )
 
   sig_file = st.file_uploader(
@@ -268,98 +273,113 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
     total_tax = cgst_amt + sgst_amt + igst_amt
     net_amt = taxable_amt + total_tax
 
-    # அவுட்புட் வடிவமைப்பு (Invoice Layout Display)
-    st.markdown(
-        f"<div style='text-align: right; font-weight: bold;'>{invoice_type}</div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"<h2 style='text-align: center;'>{comp_name}</h2>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"<p style='text-align: center;'>{comp_addr}</p>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"<p style='text-align: center;'>PHONE : {comp_phone}</p>",
-        unsafe_allow_html=True,
-    )
-    st.markdown("---")
+    # இன்வாய்ஸ் முழு வடிவம் (HTML வடிவமைப்புடன் - பிரிண்ட் செய்து PDF எடுக்க ஏதுவாக)
+    invoice_html = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; background-color: #fff; color: #000;">
+            <div style="text-align: right; font-weight: bold; font-size: 12px;">{invoice_type}</div>
+            <h2 style="text-align: center; margin-bottom: 5px;">{comp_name}</h2>
+            <p style="text-align: center; margin: 0; font-size: 14px;">{comp_addr}</p>
+            <p style="text-align: center; margin: 5px 0; font-size: 14px;">PHONE : {comp_phone}</p>
+            <hr>
+            <p><b>GSTIN :</b> {comp_gstin} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>PAN :</b> {comp_pan}</p>
+            <hr>
+            <table width="100%">
+                <tr>
+                    <td><b>BILL NO :</b> {bill_no}<br><b>BILL DATE :</b> {bill_date}</td>
+                    <td style="text-align: right;"><b>Ack No :</b> {ack_no}<br><b>Ack Date :</b> {ack_date}</td>
+                </tr>
+            </table>
+            <p><b>I.R.N :</b> {irn_no}</p>
+            <p><b>EWAY BILL NO :</b> {eway_no}</p>
+            <hr>
+            <table width="100%">
+                <tr>
+                    <td width="50%" style="vertical-align: top;">
+                        <b>Billed To:</b><br>
+                        <b>{billed_name}</b><br>{billed_addr}<br>
+                        <b>GSTIN :</b> {billed_gstin}<br><b>PAN :</b> {billed_pan}
+                    </td>
+                    <td width="50%" style="vertical-align: top;">
+                        <b>Shipped To:</b><br>
+                        <b>{shipped_name}</b><br>{shipped_addr}<br>
+                        <b>GSTIN :</b> {shipped_gstin}
+                    </td>
+                </tr>
+            </table>
+            <hr>
+            <table border="1" cellspacing="0" cellpadding="5" width="100%" style="border-collapse: collapse; font-size: 12px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th>S.NO</th><th>DESCRIPTION OF GOODS</th><th>HSN/SAC</th><th>TAX %</th><th>QTY</th><th>UOM</th><th>RATE</th><th>AMOUNT</th>
+                </tr>
+                <tr>
+                    <td align="center">1</td>
+                    <td>{desc}</td>
+                    <td align="center">{hsn_sac}</td>
+                    <td align="center">{tax_rate:.2f}</td>
+                    <td align="center">{qty}</td>
+                    <td align="center">{uom}</td>
+                    <td align="right">{rate:.2f}</td>
+                    <td align="right">{taxable_amt:.2f}</td>
+                </tr>
+            </table>
+            <p style="text-align: right;"><b>Taxable Amount:</b> ₹ {taxable_amt:.2f}</p>
+            <p style="text-align: right;"><b>CGST Amount:</b> ₹ {cgst_amt:.2f}</p>
+            <p style="text-align: right;"><b>SGST Amount:</b> ₹ {sgst_amt:.2f}</p>
+            <p style="text-align: right;"><b>IGST Amount:</b> ₹ {igst_amt:.2f}</p>
+            <p style="text-align: right;"><b>Tax Total:</b> ₹ {total_tax:.2f}</p>
+            <h3 style="text-align: right;">Net Amount: ₹ {net_amt:.2f}</h3>
+            <hr>
+            <table width="100%">
+                <tr>
+                    <td width="60%" style="vertical-align: top; font-size: 11px;">
+                        <b>Terms & Conditions:</b><br>{terms_cond}
+                    </td>
+                    <td width="40%" style="vertical-align: top; font-size: 11px;">
+                        <b>BANK DETAIL:</b><br>
+                        - ACCOUNT NO : {account_no}<br>
+                        - BANK NAME : {bank_name}<br>
+                        - BRANCH : {branch}<br>
+                        - IFSC : {ifsc}
+                    </td>
+                </tr>
+            </table>
+            <p><b>VEHICLE NO :</b> {vehicle_no}</p>
+            <div style="text-align: right; margin-top: 30px; font-weight: bold;">For {comp_name}</div>
+        </div>
+        """
 
-    st.markdown(
-        f"**GSTIN :** {comp_gstin} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-        f" &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **PAN"
-        f" :** {comp_pan}"
-    )
-    st.markdown("---")
-
-    col_out1, col_out2 = st.columns(2)
-    with col_out1:
-      st.write(f"**BILL NO :** {bill_no}")
-      st.write(f"**BILL DATE :** {bill_date}")
-    with col_out2:
-      st.write(f"**Ack No :** {ack_no}")
-      st.write(f"**Ack Date :** {ack_date}")
-
-    st.write(f"**I.R.N :** {irn_no}")
-    st.write(f"**EWAY BILL NO :** {eway_no}")
-    st.markdown("---")
-
-    # Billed To & Shipped To
-    col_res1, col_res2 = st.columns(2)
-    with col_res1:
-      st.markdown(
-          f"**Billed To.**\n\n**{billed_name}**\n{billed_addr}\n\n**GSTIN :**"
-          f" {billed_gstin} &nbsp;&nbsp; **PAN :** {billed_pan}"
-      )
-    with col_res2:
-      st.markdown(
-          f"**Shipped To.**\n\n**{shipped_name}**\n{shipped_addr}\n\n**GSTIN :**"
-          f" {shipped_gstin}"
-      )
-
-    st.markdown("---")
-
-    # பொருள் அட்டவணை (Table)
-    st.markdown(
-        "| S.NO | DESCRIPTION OF GOODS | HSN/SAC | TAX % | QTY | UOM | RATE |"
-        " AMOUNT |"
-    )
-    st.markdown(
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
-    )
-    st.markdown(
-        f"| 1 | {desc} | {hsn_sac} | {tax_rate:.2f} | {qty} | {uom} |"
-        f" {rate:.2f} | {taxable_amt:.2f} |"
-    )
-
-    st.markdown("---")
-    st.write(f"**Taxable Amount:** ₹ {taxable_amt:.2f}")
-    st.write(f"**CGST Amount:** ₹ {cgst_amt:.2f}")
-    st.write(f"**SGST Amount:** ₹ {sgst_amt:.2f}")
-    st.write(f"**IGST Amount:** ₹ {igst_amt:.2f}")
-    st.write(f"**Tax Total:** ₹ {total_tax:.2f}")
-    st.markdown(f"### **Net Amount: ₹ {net_amt:.2f}**")
-
-    st.markdown("---")
-    col_ft1, col_ft2 = st.columns(2)
-    with col_ft1:
-      st.markdown(f"**Terms & Conditions :**\n{terms_cond}")
-    with col_ft2:
-      st.markdown(
-          f"**BANK DETAIL :**\n- ACCOUNT NO : {account_no}\n- BANK NAME :"
-          f" {bank_name}\n- BRANCH : {branch}\n- IFSC : {ifsc}"
-      )
-
-    st.markdown("---")
-    st.write(f"**VEHICLE NO :** {vehicle_no}")
-    st.markdown(
-        f"<div style='text-align: right; font-weight: bold;'>For {comp_name}</div>",
-        unsafe_allow_html=True,
-    )
+    # திரையில் இன்வாய்ஸ் காட்டுவது
+    st.markdown(invoice_html, unsafe_allow_html=True)
 
     if sig_file is not None:
       st.image(sig_file, width=150)
 
-    st.success("உங்கள் இன்வாய்ஸ் முழுமையாக வெற்றிகரமாகத் தயாராகிவிட்டது!")
+    st.success("இன்வாய்ஸ் வெற்றிகரமாகத் தயாராகிவிட்டது!")
+
+    # 1. PDF பிரிண்ட் செய்வதற்கான வழிகாட்டுதல் (Mobile Browser Print to PDF)
+    st.info(
+        "📥 **PDF ஆக மாற்ற / பிரிண்ட் செய்ய:** உங்கள் மொபைல் பிரவுசரில் மேலே உள்ள"
+        " மூன்று புள்ளிகளை (Menu) தட்டி **'Print'** அல்லது **'Share' -> 'Print'**"
+        " கொடுத்து **'Save as PDF'** என்பதைத் தேர்ந்தெடுக்கவும்."
+    )
+
+    # 2. வாட்ஸ்அப் ஷேர் லிங்க் (WhatsApp Share Link)
+    whatsapp_message = (
+        f"*INVOICE DETAILS*\nCompany: {comp_name}\nBill No: {bill_no}\nDate:"
+        f" {bill_date}\nNet Amount: ₹ {net_amt:.2f}\nE-Way Bill No:"
+        f" {eway_no}\nThank you!"
+    )
+    encoded_message = urllib.parse.quote(whatsapp_message)
+    whatsapp_url = f"https://wa.me/{customer_phone}?text={encoded_message}"
+
+    if customer_phone:
+      st.markdown(
+          f"### 📲 [வாட்ஸ்அப்பில் பில் விவரங்களை அனுப்ப இங்கே கிளிக்"
+          f" செய்யவும்]({whatsapp_url})",
+          unsafe_allow_html=True,
+      )
+    else:
+      st.warning(
+          "வாட்ஸ்அப்பில் அனுப்ப மேலே உள்ள கட்டத்தில் வாடிக்கையாளர் போன் நம்பரை"
+          " உள்ளிடவும்."
+      )
