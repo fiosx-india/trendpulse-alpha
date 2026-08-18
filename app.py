@@ -157,122 +157,116 @@ else:
 
 import streamlit as st
 
-# ஆப்பின் இறுதியில் ஜிஎஸ்டி பில் பகுதி
 st.markdown("---")
-st.header("🧾 அவசர ஜிஎஸ்டி பில் & டிஜிட்டல் சிக்னேச்சர் ஜெனரேட்டர்")
+st.header("🧾 அவசர ஜிஎஸ்டி & ஈ-வே பில் இன்வாய்ஸ் ஜெனரேட்டர்")
 
-with st.expander("GST Bill & Invoice உருவாக்குவதற்கு இங்கே கிளிக் செய்யவும்"):
-  # டிஜிட்டல் கையெழுத்து பதிவேற்றம் (ஒரே முறை அப்லோட் செய்து கொள்ளலாம்)
-  st.subheader("✍️ டிஜிட்டல் கையெழுத்து அமைப்பு")
+with st.expander(
+    "👉 பிசினஸ் இன்வாய்ஸ் & ஈ-வே பில் உருவாக்குவதற்கு இங்கே கிளிக் செய்யவும்"
+):
+
+  # 1. உங்கள் கம்பெனி விவரங்கள் (தலைப்பு)
+  st.subheader("🏢 சப்ளையர் (உங்கள்) விவரங்கள்")
+  my_company_name = st.text_input(
+      "உங்கள் கம்பெனி பெயர்", "TrendPulse Enterprises"
+  )
+  my_gstin = st.text_input("உங்கள் GSTIN எண்", "33AAAAA0000A1Z5")
+
+  st.markdown("---")
+
+  # 2. வாடிக்கையாளர் மற்றும் விற்பனை செய்யும் கம்பெனி விவரங்கள்
+  st.subheader("👥 வாடிக்கையாளர் மற்றும் நிறுவன விவரங்கள்")
+  buyer_name = st.text_input("பொருள் வாங்குபவர் பெயர் (Buyer Name)")
+  buyer_gstin = st.text_input("வாங்குபவர் GSTIN எண்")
+
+  add_second_company = st.checkbox(
+      "மற்றொரு கம்பெனி பெயருக்கு விற்பனை (Secondary Company Sale இருந்தால்"
+      " டிக் செய்யவும்)"
+  )
+  second_company_name = ""
+  second_company_gstin = ""
+
+  if add_second_company:
+    second_company_name = st.text_input("இரண்டாவது கம்பெனி பெயர்")
+    second_company_gstin = st.text_input("இரண்டாவது கம்பெனி GSTIN")
+
+  st.markdown("---")
+
+  # 3. பொருள் மற்றும் விலை விவரங்கள்
+  st.subheader("📦 பொருள் மற்றும் விலை விவரங்கள்")
+  col1, col2, col3 = st.columns(3)
+  with col1:
+    item_name = st.text_input("பொருள் பெயர் (Item Name)")
+  with col2:
+    qty = st.number_input("எண்ணிக்கை (Qty)", min_value=1, value=1)
+  with col3:
+    price = st.number_input("விலை (Price per unit)", min_value=0.0, value=100.0)
+
+  gst_rate = st.selectbox("ஜிஎஸ்டி சதவீதம் (GST %)", [5, 12, 18, 28])
+
+  st.markdown("---")
+
+  # 4. ஈ-வே பில் மற்றும் வாகன எண் விருப்பம்
+  st.subheader("🚛 ஈ-வே பில் (E-Way Bill) விவரங்கள்")
+  enable_eway = st.checkbox(
+      "இந்தப் பரிவர்த்தனைக்கு ஈ-வே பில் (E-Way Bill) தேவைப்படுகிறது"
+  )
+  vehicle_no = ""
+  if enable_eway:
+    vehicle_no = st.text_input("வாகன எண் / ரோடு எண் (Vehicle / Transport No)")
+
+  st.markdown("---")
+
+  # 5. டிஜிட்டல் கையெழுத்து அமைப்பு
+  st.subheader("✍️ டிஜிட்டல் கையெழுத்து")
   sig_file = st.file_uploader(
-      "உங்கள் கையெழுத்து படத்தை (PNG/JPG) இங்கு அப்லோட் செய்யவும்:",
+      "கையெழுத்து படத்தை (PNG/JPG) அப்லோட் செய்யவும்:",
       type=["png", "jpg", "jpeg"],
+      key="gst_sig",
   )
 
   if sig_file is not None:
     st.image(sig_file, width=150, caption="பதிவேற்றப்பட்ட கையெழுத்து")
 
-  st.markdown("---")
-
-  # வாடிக்கையாளர் விவரங்கள்
-  cust_name = st.text_input("வாடிக்கையாளர் பெயர் (Customer Name)")
-  cust_gstin = st.text_input("வாடிக்கையாளர் GSTIN (இருந்தால்)")
-
-  # பொருள் மற்றும் விலை விவரங்கள்
-  col1, col2, col3 = st.columns(3)
-  with col1:
-    item_name = st.text_input("பொருள் பெயர் (Item Name)")
-  with col2:
-    qty = st.number_input("எண்ணிக்கை (Qty)", min_value=1, value=1)
-  with col3:
-    price = st.number_input("விலை (Price per unit)", min_value=0.0, value=100.0)
-
-  gst_rate = st.selectbox("ஜிஎஸ்டி சதவீதம் (GST %)", [5, 12, 18, 28])
-
-  if st.button("பில் தொகையைக் கணக்கிடு & இன்வாய்ஸ் உருவாக்கு"):
+  # 6. பில் உருவாக்கும் பட்டன்
+  if st.button("இன்வாய்ஸ் மற்றும் பில்லை உருவாக்கு"):
     subtotal = qty * price
     gst_amount = (subtotal * gst_rate) / 100
     total_amount = subtotal + gst_amount
 
-    st.success("பில் விவரங்கள் தயார்!")
-    st.write(f"**வாடிக்கையாளர்:** {cust_name}")
-    st.write(f"**GSTIN:** {cust_gstin}")
-    st.write(f"**பொருள்:** {item_name} (Qty: {qty})")
+    st.markdown("---")
+    # பில் பிரிண்ட் பார்மட்
+    st.markdown(f"## 📌 **{my_company_name}**")
+    st.write(f"**GSTIN:** {my_gstin}")
+    st.markdown("---")
+
+    st.write(f"**வாங்குபவர்:** {buyer_name} (GSTIN: {buyer_gstin})")
+    if add_second_company and second_company_name:
+      st.write(
+          f"**இறுதி விற்பனை நிறுவனங்கள்:** {second_company_name} (GSTIN:"
+          f" {second_company_gstin})"
+      )
+
+    st.write(f"**பொருள்:** {item_name} | **எண்ணிக்கை:** {qty}")
     st.write(f"**அடிப்படைத் தொகை (Subtotal):** ₹{subtotal:.2f}")
     st.write(f"**GST ({gst_rate}%):** ₹{gst_amount:.2f}")
     st.markdown(f"### **மொத்தத் தொகை (Grand Total): ₹{total_amount:.2f}**")
 
-    # கையெழுத்து காட்டும் பகுதி
+    # ஈ-வே பில் விவரம் (டிக் செய்திருந்தால் மட்டும் காட்டும்)
+    if enable_eway:
+      st.markdown("---")
+      st.subheader("🚚 E-Way Bill விவரம்")
+      st.success("ஈ-வே பில் கோரிக்கை ஏற்கFபட்டது.")
+      st.write(f"**வாகன எண் / ரோடு எண்:** {vehicle_no}")
+      st.info(
+          "மேற்கண்ட விவரங்களைக் கொண்டு அதிகாரப்பூர்வ E-Way Bill போர்ட்டலில்"
+          " பதிவேற்றிக் கொள்ளவும்."
+      )
+
+    # கையெழுத்து காட்டுவது
     if sig_file is not None:
       st.markdown("---")
-      st.write("ആauthorized Signature (அதிகாரப்பூர்வ கையெழுத்து):")
+      st.write("Authorized Signature:")
       st.image(sig_file, width=150)
-    else:
-      st.info("குறிப்பு: மேலே கையெழுத்து படம் அப்லோட் செய்தால் இங்கு பில்லில் வரும்.")
 
-    st.info(
-        "குறிப்பு: இந்தத் தொகையை வைத்து நீங்கள் அதிகாரப்பூர்வ ஜிஎஸ்டி தளத்தில்"
-        " இன்வாய்ஸ் உருவாக்கிக் கொள்ளலாம்."
-    )
+    st.success("இன்வாய்ஸ் வெற்றிகரமாகத் தயாராகிவிட்டது!")
 
-
-import streamlit as st
-
-# ஆப்பின் இறுதியில் ஜிஎஸ்டி மற்றும் ஈ-வே பில் பகுதி
-st.markdown("---")
-st.header("🧾 அவசர ஜிஎஸ்டி & ஈ-வே பில் ஜெனரேட்டர்")
-
-with st.expander("GST & E-Way Bill உருவாக்குவதற்கு இங்கே கிளிக் செய்யவும்"):
-  # வாடிக்கையாளர் மற்றும் சப்ளையர் விவரங்கள்
-  cust_name = st.text_input("வாடிக்கையாளர் பெயர் (Customer Name)")
-  cust_gstin = st.text_input("வாடிக்கையாளர் GSTIN (இருந்தால்)")
-  transporter_id = st.text_input(
-      "போக்குவரத்து ID / வண்டி எண் (Transporter ID / Vehicle No)"
-  )
-
-  # பொருள் மற்றும் விலை விவரங்கள்
-  col1, col2, col3 = st.columns(3)
-  with col1:
-    item_name = st.text_input("பொருள் பெயர் (Item Name)")
-  with col2:
-    qty = st.number_input("எண்ணிக்கை (Qty)", min_value=1, value=1)
-  with col3:
-    price = st.number_input("விலை (Price per unit)", min_value=0.0, value=100.0)
-
-  gst_rate = st.selectbox("ஜிஎஸ்டி சதவீதம் (GST %)", [5, 12, 18, 28])
-
-  if st.button("ஜிஎஸ்டி & ஈ-வே பில் தொகையைக் கணக்கிடு"):
-    subtotal = qty * price
-    gst_amount = (subtotal * gst_rate) / 100
-    total_amount = subtotal + gst_amount
-
-    st.success("பில் விவரங்கள் வெற்றிகரமாகத் தயாராகியுள்ளன!")
-
-    # ஜிஎஸ்டி பில் சுருக்கம்
-    st.subheader("1. GST Invoice Details")
-    st.write(f"**வாடிக்கையாளர்:** {cust_name} (GSTIN: {cust_gstin})")
-    st.write(f"**பொருள்:** {item_name} (Qty: {qty})")
-    st.write(f"**அடிப்படைத் தொகை (Subtotal):** ₹{subtotal:.2f}")
-    st.write(f"**GST ({gst_rate}%):** ₹{gst_amount:.2f}")
-    st.markdown(f"### **மொத்தத் தொகை (Grand Total): ₹{total_amount:.2f}**")
-
-    # ஈ-வே பில் தகவல் பகுதி
-    st.subheader("2. E-Way Bill Summary")
-    st.info(
-        "ஈ-வே பில் நடைமுறை: மொத்த சரக்கு மதிப்பு ரூ.50,000-க்கு மேல் செல்லும்"
-        " போது அதிகாரப்பூர்வ E-Way Bill தளத்தில் உள்ளிட வேண்டிய தரவுகள்:"
-    )
-    st.write(f"**மதிப்புமிக்க சரக்குத் தொகை:** ₹{total_amount:.2f}")
-    st.write(f"**வாகன எண் / Transporter ID:** {transporter_id}")
-
-    if total_amount >= 50000:
-      st.warning(
-          "எச்சரிக்கை: பில் தொகை ரூ.50,000-க்கு மேல் உள்ளதால், அதிகாரப்பூர்வ"
-          " E-Way Bill இணையதளத்தில் (ewaybillgst.gov.in) இந்த விவரங்களை உள்ளிட்டு"
-          " உடனடியாக ஈ-வே பில் எண் பெறப்பட வேண்டும்."
-      )
-    else:
-      st.info(
-          "குறிப்பு: பில் தொகை ரூ.50,000-க்கு குறைவாக இருப்பதால் பொதுவாக ஈ-வே பில்"
-          " கட்டாயம் தேவையில்லை."
-      )
