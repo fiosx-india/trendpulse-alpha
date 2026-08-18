@@ -159,139 +159,207 @@ else:
 import streamlit as st
 
 st.markdown("---")
-st.header("🧾 அதிகாரப்பூர்வ இன்வாய்ஸ் & ஈ-வே பில் ஜெனரேட்டர்")
+st.header("🧾 முழுமையான டேக்ஸ் இன்வாய்ஸ் (Tax Invoice Generator)")
 
-with st.expander(
-    "👉 பிசினஸ் இன்வாய்ஸ் & ஈ-வே பில் உருவாக்குவதற்கு இங்கே கிளிக் செய்யவும்"
-):
+with st.expander("👉 இன்வாய்ஸ் விவரங்களை உள்ளிட இங்கே கிளிக் செய்யவும்"):
 
-  # 1. சப்ளையர் (உங்கள்) கம்பெனி விவரங்கள் (தலைப்பு)
-  st.subheader("🏢 1. சப்ளையர் (உங்கள்) விவரங்கள்")
-  my_company_name = st.text_input("உங்கள் கம்பெனி பெயர்", "")
-  my_gstin = st.text_input("உங்கள் GSTIN எண்", "")
-  my_address = st.text_area("உங்கள் கம்பெனி முகவரி", "")
+  # 1. சப்ளையர் (உங்கள்) கம்பெனி விவரங்கள்
+  st.subheader("🏢 சப்ளையர் விவரங்கள் (Supplier Details)")
+  col_s1, col_s2 = st.columns(2)
+  with col_s1:
+    comp_name = st.text_input("கம்பெனி பெயர் (Company Name)", "")
+    comp_addr = st.text_area("கம்பெனி முகவரி (Address)", "")
+    comp_phone = st.text_input("தொலைபேசி எண் (Phone)", "")
+  with col_s2:
+    comp_gstin = st.text_input("GSTIN", "")
+    comp_pan = st.text_input("PAN", "")
 
   st.markdown("---")
 
-  # 2. Billed To மற்றும் Shipped To விவரங்கள் (இரண்டு பிரிவுகள்)
-  st.subheader(
-      "👥 2. வாடிக்கையாளர் மற்றும் முகவரி விவரங்கள் (Billed To & Shipped To)"
-  )
+  # 2. பில் மற்றும் ரசீது எண் விவரங்கள்
+  st.subheader("📋 பில் மற்றும் ஒப்புதல் விவரங்கள் (Bill & Ack Details)")
+  col_a1, col_a2 = st.columns(2)
+  with col_a1:
+    bill_no = st.text_input("பில் எண் (BILL NO)", "")
+    bill_date = st.text_input("பில் தேதி (BILL DATE)", "")
+    ack_no = st.text_input("Ack No", "")
+    ack_date = st.text_input("Ack Date", "")
+  with col_a2:
+    irn_no = st.text_input("I.R.N", "")
+    eway_no = st.text_input("EWAY BILL NO", "")
+    invoice_type = st.text_input(
+        "இன்வாய்ஸ் வகை (ဥပမာ: ORIGINAL FOR CONSIGNEE)",
+        "ORIGINAL FOR CONSIGNEE",
+    )
 
+  st.markdown("---")
+
+  # 3. Billed To மற்றும் Shipped To விவரங்கள் (இரண்டு பக்கவாட்டுப் பிரிவுகள்)
+  st.subheader("👥 பெறுபவர் மற்றும் அனுப்புமிடம் (Billed To & Shipped To)")
   col_b1, col_b2 = st.columns(2)
 
   with col_b1:
-    st.markdown("**Billed To (பில் பெறുന്നவர்):**")
-    billed_name = st.text_input("நிறுவனத்தின் பெயர் (Billed To Name)")
-    billed_gstin = st.text_input("GSTIN (Billed To GSTIN)")
-    billed_address = st.text_area("முகவரி (Billed To Address)")
+    st.markdown("**Billed To:**")
+    billed_name = st.text_input("பெறுபவர் கம்பெனி பெயர் (Billed Name)", "")
+    billed_addr = st.text_area("பெறுபவர் முகவரி (Billed Address)", "")
+    billed_gstin = st.text_input("பெறுபவர் GSTIN", "")
+    billed_pan = st.text_input("பெறுபவர் PAN", "")
 
   with col_b2:
-    st.markdown("**Shipped To (பொருள் அனுப்பப்படும் இடம்):**")
-    shipped_name = st.text_input("நிறுவனத்தின் பெயர் (Shipped To Name)")
-    shipped_gstin = st.text_input("GSTIN (Shipped To GSTIN)")
-    shipped_address = st.text_area("முகவரி (Shipped To Address)")
+    st.markdown("**Shipped To:**")
+    shipped_name = st.text_input("அனுப்பும் இடம் கம்பெனி பெயர் (Shipped Name)", "")
+    shipped_addr = st.text_area("அனுப்பும் இடம் முகவரி (Shipped Address)", "")
+    shipped_gstin = st.text_input("அனுப்பும் இடம் GSTIN", "")
 
   st.markdown("---")
 
-  # 3. பொருள் மற்றும் விலை விவரங்கள்
-  st.subheader("📦 3. பொருள் மற்றும் விலை விவரங்கள்")
-  col_i1, col_i2, col_i3, col_i4 = st.columns(4)
-  with col_i1:
-    item_name = st.text_input("பொருள் விளக்கம் (Description)")
-  with col_i2:
-    hsn_code = st.text_input("HSN/SAC குறியீடு", "84481110")
-  with col_i3:
-    qty = st.number_input("எண்ணிக்கை (Qty)", min_value=1.0, value=1.0)
-  with col_i4:
-    price = st.number_input("விலை (Rate per unit)", min_value=0.0, value=100.0)
+  # 4. பொருட்கள் விவரங்கள் (Goods Details)
+  st.subheader("📦 பொருள் விவரங்கள் (Goods Details)")
+  desc = st.text_input("பொருள் விளக்கம் (Description of Goods)", "")
+  col_g1, col_g2, col_g3, col_g4, col_g5 = st.columns(5)
+  with col_g1:
+    hsn_sac = st.text_input("HSN/SAC", "")
+  with col_g2:
+    tax_rate = st.number_input("Tax %", value=18.0)
+  with col_g3:
+    qty = st.number_input("Qty", value=1.0)
+  with col_g4:
+    uom = st.text_input("UOM", "NOS")
+  with col_g5:
+    rate = st.number_input("Rate", value=0.0)
 
-  gst_rate = st.selectbox("ஜிஎஸ்டி சதவீதம் (GST %)", [5.0, 12.0, 18.0, 28.0])
-
-  st.markdown("---")
-
-  # 4. ஈ-வே பில் விருப்பம் (தேவைப்பட்டால் மட்டும்)
-  st.subheader("🚛 4. ஈ-வே பில் (E-Way Bill) விவரங்கள்")
-  enable_eway = st.checkbox(
-      "இந்தப் பரிவர்த்தனைக்கு ஈ-வே பில் (E-Way Bill) தேவைப்படுகிறது (டிக்"
-      " செய்யவும்)"
-  )
-
-  eway_no = ""
-  vehicle_no = ""
-  if enable_eway:
-    eway_no = st.text_input("ஈ-வே பில் எண் (E-Way Bill No)")
-    vehicle_no = st.text_input("வாகன எண் / ரோடு எண் (Vehicle No)")
+  # வரி வகைகள் (CGST, SGST, IGST)
+  st.subheader("💰 வரித் தொகைகள் (Tax Breakdown)")
+  col_t1, col_t2, col_t3 = st.columns(3)
+  with col_t1:
+    cgst_amt = st.number_input("CGST Amount", value=0.0)
+  with col_t2:
+    sgst_amt = st.number_input("SGST Amount", value=0.0)
+  with col_t3:
+    igst_amt = st.number_input("IGST Amount", value=0.0)
 
   st.markdown("---")
 
-  # 5. டிஜிட்டல் கையெழுத்து & வங்கி விவரங்கள்
-  st.subheader("✍️ 5. டிஜிட்டல் கையெழுத்து & வங்கி விவரங்கள்")
-  bank_details = st.text_area(
-      "வங்கி விவரங்கள் (Bank Details)",
-      "Bank Name: \nA/c No: \nIFSC: \nBranch: ",
-  )
+  # 5. விதிமுறைகள், வங்கி மற்றும் வாகன விவரங்கள்
+  st.subheader("🏦 வங்கி, வாகன எண் & விதிமுறைகள் (Bank & Transport)")
+  col_v1, col_v2 = st.columns(2)
+  with col_v1:
+    vehicle_no = st.text_input("வாகன எண் (VEHICLE NO)", "")
+    bank_name = st.text_input("வங்கி பெயர் (BANK NAME)", "")
+    account_no = st.text_input("கணக்கு எண் (ACCOUNT NO)", "")
+  with col_v2:
+    branch = st.text_input("கிளை (BRANCH)", "")
+    ifsc = st.text_input("IFSC", "")
+    terms_cond = st.text_area(
+        "விதிமுறைகள் (Terms & Conditions)",
+        "Overdue interest will be charged at 24% from the invoice date.\nWe"
+        " are not responsible for any loss or damage in transit.",
+    )
 
   sig_file = st.file_uploader(
-      "அதிகாரப்பூர்வ கையெழுத்து படம் (PNG/JPG) அப்லோட் செய்யவும்:",
-      type=["png", "jpg", "jpeg"],
-      key="exact_sig_upload",
+      "கையொப்ப படம் (Sign)", type=["png", "jpg", "jpeg"]
   )
-
-  if sig_file is not None:
-    st.image(sig_file, width=150, caption="பதிவேற்றப்பட்ட கையெழுத்து")
 
   st.markdown("---")
 
-  # 6. பில் உருவாக்கும் பட்டன்
-  if st.button("அதிகாரப்பூர்வ இன்வாய்ஸ் மற்றும் பில்லை உருவாக்கு"):
-    taxable_amount = qty * price
-    tax_amount = (taxable_amount * gst_rate) / 100
-    net_amount = taxable_amount + tax_amount
+  # 6. இன்வாய்ஸ் உருவாக்கும் பட்டன்
+  if st.button("அதிகாரப்பூர்வ இன்வாய்ஸை உருவாக்கு"):
+    taxable_amt = qty * rate
+    total_tax = cgst_amt + sgst_amt + igst_amt
+    net_amt = taxable_amt + total_tax
 
+    # அவுட்புட் வடிவமைப்பு (Invoice Layout Display)
+    st.markdown(
+        f"<div style='text-align: right; font-weight: bold;'>{invoice_type}</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<h2 style='text-align: center;'>{comp_name}</h2>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<p style='text-align: center;'>{comp_addr}</p>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<p style='text-align: center;'>PHONE : {comp_phone}</p>",
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
 
-    # இன்வாய்ஸ் ஹெட்டர் (உங்கள் கம்பெனி)
-    st.markdown(f"## 📌 **{my_company_name}**")
-    st.write(f"{my_address}")
-    st.write(f"**GSTIN:** {my_gstin}")
+    st.markdown(
+        f"**GSTIN :** {comp_gstin} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+        f" &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **PAN"
+        f" :** {comp_pan}"
+    )
     st.markdown("---")
 
-    # Billed To மற்றும் Shipped To பக்கவாட்டுத் தோற்றம்
+    col_out1, col_out2 = st.columns(2)
+    with col_out1:
+      st.write(f"**BILL NO :** {bill_no}")
+      st.write(f"**BILL DATE :** {bill_date}")
+    with col_out2:
+      st.write(f"**Ack No :** {ack_no}")
+      st.write(f"**Ack Date :** {ack_date}")
+
+    st.write(f"**I.R.N :** {irn_no}")
+    st.write(f"**EWAY BILL NO :** {eway_no}")
+    st.markdown("---")
+
+    # Billed To & Shipped To
     col_res1, col_res2 = st.columns(2)
     with col_res1:
       st.markdown(
-          f"**Billed To:**\n\n{billed_name}\n\nGSTIN:"
-          f" {billed_gstin}\n\n{billed_address}"
+          f"**Billed To.**\n\n**{billed_name}**\n{billed_addr}\n\n**GSTIN :**"
+          f" {billed_gstin} &nbsp;&nbsp; **PAN :** {billed_pan}"
       )
     with col_res2:
       st.markdown(
-          f"**Shipped To:**\n\n{shipped_name}\n\nGSTIN:"
-          f" {shipped_gstin}\n\n{shipped_address}"
+          f"**Shipped To.**\n\n**{shipped_name}**\n{shipped_addr}\n\n**GSTIN :**"
+          f" {shipped_gstin}"
       )
 
     st.markdown("---")
-    st.write(f"**பொருள்:** {item_name} (HSN: {hsn_code})")
-    st.write(f"**எண்ணிக்கை:** {qty} | **விலை:** ₹{price:.2f}")
-    st.write(f"**டாக்ஸபிள் தொகை (Taxable Amount):** ₹{taxable_amount:.2f}")
-    st.write(f"**GST ({gst_rate}%):** ₹{tax_amount:.2f}")
-    st.markdown(f"### **நிகர மொத்தம் (Net Amount): ₹{net_amount:.2f}**")
 
-    # ஈ-வே பில் விவரம் (டிக் செய்திருந்தால் மட்டும் காட்டும்)
-    if enable_eway:
-      st.markdown("---")
-      st.subheader("🚚 E-Way Bill Details")
-      st.write(f"**E-Way Bill No:** {eway_no}")
-      st.write(f"**Vehicle No:** {vehicle_no}")
-      st.success("ஈ-வே பில் தகவல்கள் இன்வாய்ஸில் இணைக்கப்பட்டன.")
+    # பொருள் அட்டவணை (Table)
+    st.markdown(
+        "| S.NO | DESCRIPTION OF GOODS | HSN/SAC | TAX % | QTY | UOM | RATE |"
+        " AMOUNT |"
+    )
+    st.markdown(
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
+    )
+    st.markdown(
+        f"| 1 | {desc} | {hsn_sac} | {tax_rate:.2f} | {qty} | {uom} |"
+        f" {rate:.2f} | {taxable_amt:.2f} |"
+    )
 
     st.markdown("---")
-    st.markdown(f"**வங்கி விவரங்கள்:**\n{bank_details}")
+    st.write(f"**Taxable Amount:** ₹ {taxable_amt:.2f}")
+    st.write(f"**CGST Amount:** ₹ {cgst_amt:.2f}")
+    st.write(f"**SGST Amount:** ₹ {sgst_amt:.2f}")
+    st.write(f"**IGST Amount:** ₹ {igst_amt:.2f}")
+    st.write(f"**Tax Total:** ₹ {total_tax:.2f}")
+    st.markdown(f"### **Net Amount: ₹ {net_amt:.2f}**")
 
-    # கையெழுத்து பகுதி
+    st.markdown("---")
+    col_ft1, col_ft2 = st.columns(2)
+    with col_ft1:
+      st.markdown(f"**Terms & Conditions :**\n{terms_cond}")
+    with col_ft2:
+      st.markdown(
+          f"**BANK DETAIL :**\n- ACCOUNT NO : {account_no}\n- BANK NAME :"
+          f" {bank_name}\n- BRANCH : {branch}\n- IFSC : {ifsc}"
+      )
+
+    st.markdown("---")
+    st.write(f"**VEHICLE NO :** {vehicle_no}")
+    st.markdown(
+        f"<div style='text-align: right; font-weight: bold;'>For {comp_name}</div>",
+        unsafe_allow_html=True,
+    )
+
     if sig_file is not None:
-      st.markdown("---")
-      st.write("Authorised Signatory:")
       st.image(sig_file, width=150)
 
-    st.success("இன்வாய்ஸ் மற்றும் பில் விவரங்கள் வெற்றிகரமாகத் தயாராகிவிட்டன!")
+    st.success("உங்கள் இன்வாய்ஸ் முழுமையாக வெற்றிகரமாகத் தயாராகிவிட்டது!")
