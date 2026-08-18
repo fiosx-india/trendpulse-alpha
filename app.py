@@ -229,17 +229,35 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
   with col_g4:
     uom = st.text_input("UOM", "NOS")
   with col_g5:
-    rate = st.number_input("Rate", value=0.0)
+    rate = st.number_input("Rate (தொகை)", value=0.0)
 
-  # வரி வகைகள்
-  st.subheader("💰 வரித் தொகைகள் (Tax Breakdown)")
+  # தானியங்கு வரி கணக்கீடு (Auto calculation based on Rate & Qty)
+  taxable_amt = qty * rate
+  total_tax_amount = (taxable_amt * tax_rate) / 100
+
+  # மாநில உள்ளூர் விற்பனை எனில் CGST & SGST சமமாகப் பிரியும் (பாதி பாதியாக), இல்லையெனில் IGST முழுமையாக வரும்
+  tax_type = st.radio(
+      "வரி வகை (Tax Type)", ["Local (CGST + SGST)", "Inter-State (IGST)"]
+  )
+
+  if tax_type == "Local (CGST + SGST)":
+    cgst_amt = total_tax_amount / 2
+    sgst_amt = total_tax_amount / 2
+    igst_amt = 0.0
+  else:
+    cgst_amt = 0.0
+    sgst_amt = 0.0
+    igst_amt = total_tax_amount
+
+  st.markdown("---")
+  st.subheader("💰 வரித் தொகைகள் (Tax Breakdown - Auto Calculated)")
   col_t1, col_t2, col_t3 = st.columns(3)
   with col_t1:
-    cgst_amt = st.number_input("CGST Amount", value=0.0)
+    st.metric(label="CGST Amount", value=f"₹ {cgst_amt:,.2f}")
   with col_t2:
-    sgst_amt = st.number_input("SGST Amount", value=0.0)
+    st.metric(label="SGST Amount", value=f"₹ {sgst_amt:,.2f}")
   with col_t3:
-    igst_amt = st.number_input("IGST Amount", value=0.0)
+    st.metric(label="IGST Amount", value=f"₹ {igst_amt:,.2f}")
 
   st.markdown("---")
 
@@ -269,11 +287,8 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
 
   # 6. இன்வாய்ஸ் உருவாக்கும் பட்டன்
   if st.button("அதிகாரப்பூர்வ இன்வாய்ஸை உருவாக்கு"):
-    taxable_amt = qty * rate
-    total_tax = cgst_amt + sgst_amt + igst_amt
-    net_amt = taxable_amt + total_tax
+    net_amt = taxable_amt + total_tax_amount
 
-    # இன்வாய்ஸ் முழு வடிவம் (HTML வடிவமைப்புடன் - பிரிண்ட் செய்து PDF எடுக்க ஏதுவாக)
     invoice_html = f"""
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; background-color: #fff; color: #000;">
             <div style="text-align: right; font-weight: bold; font-size: 12px;">{invoice_type}</div>
@@ -318,16 +333,16 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
                     <td align="center">{tax_rate:.2f}</td>
                     <td align="center">{qty}</td>
                     <td align="center">{uom}</td>
-                    <td align="right">{rate:.2f}</td>
-                    <td align="right">{taxable_amt:.2f}</td>
+                    <td align="right">{rate:,.2f}</td>
+                    <td align="right">{taxable_amt:,.2f}</td>
                 </tr>
             </table>
-            <p style="text-align: right;"><b>Taxable Amount:</b> ₹ {taxable_amt:.2f}</p>
-            <p style="text-align: right;"><b>CGST Amount:</b> ₹ {cgst_amt:.2f}</p>
-            <p style="text-align: right;"><b>SGST Amount:</b> ₹ {sgst_amt:.2f}</p>
-            <p style="text-align: right;"><b>IGST Amount:</b> ₹ {igst_amt:.2f}</p>
-            <p style="text-align: right;"><b>Tax Total:</b> ₹ {total_tax:.2f}</p>
-            <h3 style="text-align: right;">Net Amount: ₹ {net_amt:.2f}</h3>
+            <p style="text-align: right;"><b>Taxable Amount:</b> ₹ {taxable_amt:,.2f}</p>
+            <p style="text-align: right;"><b>CGST Amount:</b> ₹ {cgst_amt:,.2f}</p>
+            <p style="text-align: right;"><b>SGST Amount:</b> ₹ {sgst_amt:,.2f}</p>
+            <p style="text-align: right;"><b>IGST Amount:</b> ₹ {igst_amt:,.2f}</p>
+            <p style="text-align: right;"><b>Tax Total:</b> ₹ {total_tax_amount:,.2f}</p>
+            <h3 style="text-align: right;">Net Amount: ₹ {net_amt:,.2f}</h3>
             <hr>
             <table width="100%">
                 <tr>
@@ -348,7 +363,6 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
         </div>
         """
 
-    # திரையில் இன்வாய்ஸ் காட்டுவது
     st.markdown(invoice_html, unsafe_allow_html=True)
 
     if sig_file is not None:
@@ -356,17 +370,15 @@ with st.expander("👉 இன்வாய்ஸ் விவரங்களை �
 
     st.success("இன்வாய்ஸ் வெற்றிகரமாகத் தயாராகிவிட்டது!")
 
-    # 1. PDF பிரிண்ட் செய்வதற்கான வழிகாட்டுதல் (Mobile Browser Print to PDF)
     st.info(
         "📥 **PDF ஆக மாற்ற / பிரிண்ட் செய்ய:** உங்கள் மொபைல் பிரவுசரில் மேலே உள்ள"
-        " மூன்று புள்ளிகளை (Menu) தட்டி **'Print'** அல்லது **'Share' -> 'Print'**"
-        " கொடுத்து **'Save as PDF'** என்பதைத் தேர்ந்தெடுக்கவும்."
+        " மூன்று புள்ளிகளை (Menu) தட்டி **'Print'** கொடுத்து **'Save as PDF'**"
+        " என்பதைத் தேர்ந்தெடுக்கவும்."
     )
 
-    # 2. வாட்ஸ்அப் ஷேர் லிங்க் (WhatsApp Share Link)
     whatsapp_message = (
         f"*INVOICE DETAILS*\nCompany: {comp_name}\nBill No: {bill_no}\nDate:"
-        f" {bill_date}\nNet Amount: ₹ {net_amt:.2f}\nE-Way Bill No:"
+        f" {bill_date}\nNet Amount: ₹ {net_amt:,.2f}\nE-Way Bill No:"
         f" {eway_no}\nThank you!"
     )
     encoded_message = urllib.parse.quote(whatsapp_message)
