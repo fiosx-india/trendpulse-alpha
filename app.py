@@ -111,7 +111,7 @@ if scan_button:
         else:
 
             # BSE கோப்பிற்கான வாசிப்பு மற்றும் எர்ரர் தவிர்ப்பு
-            bse_df = pd.read_csv("BhavCopy_BSE_CM_0_0_0_20260817_F_0000.CSV", on_bad_lines='skip')
+            bse_df = pd.read_csv("BhavCopy_BSE_CM_0_0_0_20260818_F_0000.CSV", on_bad_lines='skip')
             
             # 1. மியூச்சுவல் ஃபண்ட், பாண்டுகளை நீக்கிவிட்டு பங்குகளை (Stocks) மட்டும் எடுக்க:
             if 'FinInstrmTp' in bse_df.columns:
